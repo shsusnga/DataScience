@@ -1,0 +1,27 @@
+============================================================
+  BAO CAO LAM SACH DU LIEU – THPT QUOC GIA
+============================================================
+File goc      : C:\Users\Admin\OneDrive\Documents\GitHub\DataScience\data\raw.csv
+File da clean : C:\Users\Admin\OneDrive\Documents\GitHub\DataScience\data\cleaned.csv
+
+Tong dong goc      : 530,802
+Dong duplicate xoa : 0
+Dong sau cleaning  : 530,802
+
+MISSING VALUES (diem mon hoc) – Giu trong (hoc sinh khong thi mon nay):
+  toan        :   7,376 (1.4%)
+  ngu_van     :   5,882 (1.1%)
+  ngoai_ngu   :  90,540 (17.1%)
+  vat_li      : 363,378 (68.5%)
+  hoa_hoc     : 363,130 (68.4%)
+  sinh_hoc    : 365,123 (68.8%)
+  lich_su     : 172,989 (32.6%)
+  dia_li      : 173,532 (32.7%)
+  gdcd        : 245,843 (46.3%)
+
+CAC BUOC CLEANING DA THUC HIEN:
+  1. Loai bo dong trung lap (theo cot sbd)
+  2. Chuyen diem so sang kieu float; giu trong neu rong/loi
+  3. Xoa diem mon ngoai pham vi [0, 10]
+  4. Xoa diem to hop ngoai pham vi [0, 30]
+  5. Strip whitespace cho cot chuoi (tinh, kv, ma_ngoai_ngu)
