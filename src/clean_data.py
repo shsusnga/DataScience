@@ -6,7 +6,7 @@ Sử dụng hoàn toàn thư viện chuẩn Python (không cần pandas).
 
 Input : data/raw.csv
 Output: data/cleaned.csv
-        data/cleaning_report.txt
+        outputs/reports/cleaning_report.txt
 """
 
 import csv
@@ -17,7 +17,7 @@ from collections import defaultdict
 BASE_DIR    = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 INPUT_PATH  = os.path.join(BASE_DIR, "data", "raw.csv")
 OUTPUT_PATH = os.path.join(BASE_DIR, "data", "cleaned.csv")
-REPORT_PATH = os.path.join(BASE_DIR, "data", "cleaning_report.txt")
+REPORT_PATH = os.path.join(BASE_DIR, "outputs", "reports", "cleaning_report.txt")
 
 # ── Cột điểm môn học (giá trị hợp lệ: 0.0 – 10.0) ──────────────────────────
 SCORE_COLS = ["toan", "ngu_van", "ngoai_ngu", "vat_li",
@@ -182,6 +182,7 @@ def main():
         "  5. Strip whitespace cho cot chuoi (tinh, kv, ma_ngoai_ngu)",
     ]
 
+    os.makedirs(os.path.dirname(REPORT_PATH), exist_ok=True)
     with open(REPORT_PATH, "w", encoding="utf-8") as f:
         f.write("\n".join(report_lines))
 
