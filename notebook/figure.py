@@ -174,3 +174,23 @@ def main():
 
 if __name__ == "__main__":
     main()
+  # ── 5. Heatmap tương quan điểm giữa các môn ─────────────────────────────────
+def plot_correlation(df):
+    cols = list(SUBJECTS.keys())
+    names = list(SUBJECTS.values())
+    corr = df[cols].corr(min_periods=MIN_STUDENTS)   # tính theo từng cặp môn, bỏ NaN
+
+    fig, ax = plt.subplots(figsize=(9, 8))
+    im = ax.imshow(corr.values, cmap="RdYlBu_r", vmin=-1, vmax=1)
+    ax.set_xticks(range(len(names)))
+    ax.set_xticklabels(names, rotation=45, ha="right")
+    ax.set_yticks(range(len(names)))
+    ax.set_yticklabels(names)
+    for i in range(len(names)):
+        for j in range(len(names)):
+            v = corr.values[i, j]
+            if not np.isnan(v):
+                ax.text(j, i, f"{v:.2f}", ha="center", va="center", fontsize=8)
+    fig.colorbar(im, ax=ax, label="Hệ số tương quan Pearson")
+    ax.set_title("Tương quan điểm giữa các môn")
+    save(fig, "corr_heatmap.png")
