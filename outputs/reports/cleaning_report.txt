@@ -1,27 +1,191 @@
-============================================================
-  BAO CAO LAM SACH DU LIEU – THPT QUOC GIA
-============================================================
-File goc      : C:\Users\Admin\OneDrive\Documents\GitHub\DataScience\data\raw.csv
-File da clean : C:\Users\Admin\OneDrive\Documents\GitHub\DataScience\data\cleaned.csv
+======================================================================
+  BAO CAO LAM SACH DU LIEU - KY THI THPT QUOC GIA
+  Ngay tao: 2026-10-12 16:56:32
+======================================================================
 
-Tong dong goc      : 530,802
-Dong duplicate xoa : 0
-Dong sau cleaning  : 530,802
+  Thu muc du lieu goc  : C:\Users\Admin\OneDrive\Documents\GitHub\DataScience\data\raw.csv
+  Thu muc du lieu clean: C:\Users\Admin\OneDrive\Documents\GitHub\DataScience\data\cleaned
 
-MISSING VALUES (diem mon hoc) – Giu trong (hoc sinh khong thi mon nay):
-  toan        :   7,376 (1.4%)
-  ngu_van     :   5,882 (1.1%)
-  ngoai_ngu   :  90,540 (17.1%)
-  vat_li      : 363,378 (68.5%)
-  hoa_hoc     : 363,130 (68.4%)
-  sinh_hoc    : 365,123 (68.8%)
-  lich_su     : 172,989 (32.6%)
-  dia_li      : 173,532 (32.7%)
-  gdcd        : 245,843 (46.3%)
+TONG QUAN
+----------------------------------------------------------------------
+  Nam    Format         Dong goc   Duplicate   Dong cleaned
+----------------------------------------------------------------------
+  2025   Format B      1,131,136           0      1,131,136
+  2018   Format B        921,520           0        921,520
+  2019   Format B        882,594           0        882,594
+  2020   Format B        870,517           0        870,517
+  2021   Format B        987,704           0        987,704
+  2022   Format B        995,441           0        995,441
+  2023   Format B      1,022,060           0      1,022,060
+  2024   Format A        530,802           0        530,802
+----------------------------------------------------------------------
+  TONG                 7,341,774           0      7,341,774
+----------------------------------------------------------------------
 
-CAC BUOC CLEANING DA THUC HIEN:
-  1. Loai bo dong trung lap (theo cot sbd)
-  2. Chuyen diem so sang kieu float; giu trong neu rong/loi
-  3. Xoa diem mon ngoai pham vi [0, 10]
-  4. Xoa diem to hop ngoai pham vi [0, 30]
-  5. Strip whitespace cho cot chuoi (tinh, kv, ma_ngoai_ngu)
+CHI TIET TUNG NAM
+
+----------------------------------------------------------------------
+  NAM 2025 | du-lieu-diem-thi-2025.csv | Format B
+----------------------------------------------------------------------
+  Tong dong goc       : 1,131,136
+  Duplicate da xoa    : 0
+  Dong sau cleaning   : 1,131,136
+
+  MISSING VALUES (diem mon hoc - hoc sinh khong thi mon do):
+  Mon              So dong    Ti le
+  toan               4,964     0.4%
+  ngu_van            4,410     0.4%
+  ngoai_ngu        773,413    68.4%
+  vat_li           783,537    69.3%
+  hoa_hoc          891,001    78.8%
+  sinh_hoc       1,061,241    93.8%
+  lich_su          649,843    57.5%
+  dia_li           654,664    57.9%
+  gdcd           1,131,136   100.0%
+
+----------------------------------------------------------------------
+  NAM 2018 | du_lieu_diem_thi_2018.csv | Format B
+----------------------------------------------------------------------
+  Tong dong goc       : 921,520
+  Duplicate da xoa    : 0
+  Dong sau cleaning   : 921,520
+
+  MISSING VALUES (diem mon hoc - hoc sinh khong thi mon do):
+  Mon              So dong    Ti le
+  toan               4,440     0.5%
+  ngu_van           20,110     2.2%
+  ngoai_ngu        104,932    11.4%
+  vat_li           534,724    58.0%
+  hoa_hoc          532,052    57.7%
+  sinh_hoc         538,130    58.4%
+  lich_su          355,837    38.6%
+  dia_li           372,252    40.4%
+  gdcd             442,175    48.0%
+
+----------------------------------------------------------------------
+  NAM 2019 | du_lieu_diem_thi_2019.csv | Format B
+----------------------------------------------------------------------
+  Tong dong goc       : 882,594
+  Duplicate da xoa    : 0
+  Dong sau cleaning   : 882,594
+
+  MISSING VALUES (diem mon hoc - hoc sinh khong thi mon do):
+  Mon              So dong    Ti le
+  toan               4,405     0.5%
+  ngu_van           14,532     1.6%
+  ngoai_ngu         90,659    10.3%
+  vat_li           547,612    62.0%
+  hoa_hoc          543,827    61.6%
+  sinh_hoc         548,740    62.2%
+  lich_su          312,561    35.4%
+  dia_li           319,845    36.2%
+  gdcd             388,441    44.0%
+
+----------------------------------------------------------------------
+  NAM 2020 | du_lieu_diem_thi_2020.csv | Format B
+----------------------------------------------------------------------
+  Tong dong goc       : 870,517
+  Duplicate da xoa    : 0
+  Dong sau cleaning   : 870,517
+
+  MISSING VALUES (diem mon hoc - hoc sinh khong thi mon do):
+  Mon              So dong    Ti le
+  toan               3,906     0.4%
+  ngu_van           13,921     1.6%
+  ngoai_ngu         98,392    11.3%
+  vat_li           577,223    66.3%
+  hoa_hoc          574,974    66.0%
+  sinh_hoc         580,133    66.6%
+  lich_su          301,912    34.7%
+  dia_li           315,421    36.2%
+  gdcd             387,517    44.5%
+
+----------------------------------------------------------------------
+  NAM 2021 | du_lieu_diem_thi_2021.csv | Format B
+----------------------------------------------------------------------
+  Tong dong goc       : 987,704
+  Duplicate da xoa    : 0
+  Dong sau cleaning   : 987,704
+
+  MISSING VALUES (diem mon hoc - hoc sinh khong thi mon do):
+  Mon              So dong    Ti le
+  toan              10,340     1.0%
+  ngu_van           13,263     1.3%
+  ngoai_ngu        119,415    12.1%
+  vat_li           642,620    65.1%
+  hoa_hoc          640,985    64.9%
+  sinh_hoc         646,415    65.4%
+  lich_su          352,978    35.7%
+  dia_li           358,826    36.3%
+  gdcd             455,467    46.1%
+
+----------------------------------------------------------------------
+  NAM 2022 | du_lieu_diem_thi_2022.csv | Format B
+----------------------------------------------------------------------
+  Tong dong goc       : 995,441
+  Duplicate da xoa    : 0
+  Dong sau cleaning   : 995,441
+
+  MISSING VALUES (diem mon hoc - hoc sinh khong thi mon do):
+  Mon              So dong    Ti le
+  toan              12,715     1.3%
+  ngu_van           14,034     1.4%
+  ngoai_ngu        124,832    12.5%
+  vat_li           669,918    67.3%
+  hoa_hoc          668,074    67.1%
+  sinh_hoc         673,243    67.6%
+  lich_su          335,779    33.7%
+  dia_li           338,020    34.0%
+  gdcd             441,098    44.3%
+
+----------------------------------------------------------------------
+  NAM 2023 | du_lieu_diem_thi_2023.csv | Format B
+----------------------------------------------------------------------
+  Tong dong goc       : 1,022,060
+  Duplicate da xoa    : 0
+  Dong sau cleaning   : 1,022,060
+
+  MISSING VALUES (diem mon hoc - hoc sinh khong thi mon do):
+  Mon              So dong    Ti le
+  toan              18,687     1.8%
+  ngu_van           13,821     1.4%
+  ngoai_ngu        141,063    13.8%
+  vat_li           694,871    68.0%
+  hoa_hoc          693,942    67.9%
+  sinh_hoc         697,435    68.2%
+  lich_su          338,613    33.1%
+  dia_li           339,926    33.3%
+  gdcd             456,608    44.7%
+
+----------------------------------------------------------------------
+  NAM 2024 | du_lieu_diem_thi_2024.csv | Format A
+----------------------------------------------------------------------
+  Tong dong goc       : 530,802
+  Duplicate da xoa    : 0
+  Dong sau cleaning   : 530,802
+
+  MISSING VALUES (diem mon hoc - hoc sinh khong thi mon do):
+  Mon              So dong    Ti le
+  toan               7,376     1.4%
+  ngu_van            5,882     1.1%
+  ngoai_ngu         90,540    17.1%
+  vat_li           363,378    68.5%
+  hoa_hoc          363,130    68.4%
+  sinh_hoc         365,123    68.8%
+  lich_su          172,989    32.6%
+  dia_li           173,532    32.7%
+  gdcd             245,843    46.3%
+
+======================================================================
+CAC BUOC CLEANING DA THUC HIEN
+======================================================================
+  1. Phat hien format nguon (Format A / Format B)
+  2. Dong bo schema: chuan hoa ten cot ve lowercase chuan
+  3. Them cot 'nam' tu ten file / du lieu nguon
+  4. Loai bo dong trung lap (theo cot sbd)
+  5. Chuyen diem so sang kieu float; giu trong neu rong/loi
+  6. Xoa diem mon ngoai pham vi [0, 10]
+  7. Strip whitespace cho cot chuoi (tinh, ma_ngoai_ngu)
+  8. Ghi file cleaned_<nam>.csv voi schema chuan 13 cot:
+     sbd, nam, tinh, toan, ngu_van, ngoai_ngu, vat_li, hoa_hoc, sinh_hoc, lich_su, dia_li, gdcd, ma_ngoai_ngu
+======================================================================
