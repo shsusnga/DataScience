@@ -121,8 +121,9 @@ def valid_scores(df, col):
 
 def score_counts(s):
     """Số thí sinh theo từng mốc điểm cách nhau 0,5 (làm tròn tới mốc 0,5 gần nhất)."""
-    snapped = np.round(s.to_numpy() * 2) / 2
-    idx = (snapped * 2).astype(int)
+    # làm tròn half-up (4,25 -> 4,5). KHÔNG dùng np.round: nó làm tròn nửa về số chẵn nên
+    # điểm lẻ 0,25 bị gom lệch và biểu đồ cột bị răng cưa.
+    idx = np.floor(s.to_numpy() * 2 + 0.5 + 1e-9).astype(int)
     return np.bincount(idx, minlength=len(BINS))[: len(BINS)]
 
 
