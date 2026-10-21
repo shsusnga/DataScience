@@ -21,7 +21,8 @@ Không còn line chart cho từng môn / từng năm (file line_*.png cũ sẽ t
       mon_theo_nam_diem_tb.png            – bar chart dọc: điểm TB của từng môn qua các năm
       mon_theo_nam_trung_vi.png           – bar chart dọc: điểm trung vị của từng môn qua các năm
       mon_theo_nam_do_lech_chuan.png      – bar chart dọc: độ lệch chuẩn của từng môn qua các năm
-      thong_ke_cac_nam.csv                – bảng số liệu (n, mean, median, std) theo môn x năm
+      diem10_qua_cac_nam.png              – bar chart dọc (lưới 3x3): số điểm 10 của từng môn qua các năm
+      thong_ke_cac_nam.csv                – bảng số liệu (n, mean, median, std, n_diem10) theo môn x năm
 
 Chạy:  python figure.py [thư_mục_cleaned]
 Cần :  pip install pandas matplotlib numpy
@@ -314,6 +315,27 @@ def plot_subjects_over_years(stats):
         save(fig, COMPARE_DIR, fname)
 
 
+# ── 6. Bar chart số điểm 10 của từng môn qua các năm ───────────────────────
+def plot_diem10_over_years(stats):
+    """stats: DataFrame cột [nam, mon, ..., n_diem10]. Mỗi môn 1 ô, mỗi năm 1 cột."""
+    years = list(range(int(stats["nam"].min()), int(stats["nam"].max()) + 1))
+    fig, axs = plt.subplots(3, 3, figsize=(16, 11))
+    for ax, (col, name) in zip(axs.flat, SUBJECTS.items()):
+        s = (stats[stats["mon"] == col].set_index("nam")["n_diem10"]
+             .reindex(years))
+        ax.bar([str(y) for y in years], s.fillna(0), color="#f59e0b")
+        for i, v in enumerate(s):
+            ax.text(i, 0 if pd.isna(v) else v, "—" if pd.isna(v) else f"{int(v):,}",
+                    ha="center", va="bottom", fontsize=8)
+        ax.set_title(name)
+        ax.set_ylabel("Số điểm 10")
+        ax.set_ylim(0, max(s.max(), 1) * 1.15 if s.notna().any() else 1)
+        ax.spines[["top", "right"]].set_visible(False)
+    fig.suptitle(f"Số điểm 10 theo môn qua các năm {years[0]}–{years[-1]}", fontsize=15)
+    fig.tight_layout()
+    save(fig, COMPARE_DIR, "diem10_qua_cac_nam.png")
+
+
 def main():
     cleanup_old_outputs()
     data = load_years()
@@ -330,7 +352,7 @@ def main():
                 continue
             plot_bar_subject(year, col, name, s)
             compare[col][year] = s
-            rows.append({"nam": year, "mon": col, **describe(s)})
+            rows.append({"nam": year, "mon": col, **describe(s), "n_diem10": int((s == 10).sum())})
         # Top 10 điểm 10: vẽ cho MỌI môn của năm (kể cả môn thiếu dữ liệu / không có điểm 10)
         for col, name in SUBJECTS.items():
             plot_top10_diem10(year, df, col, name)
@@ -343,6 +365,7 @@ def main():
 
     stats = pd.DataFrame(rows)
     plot_subjects_over_years(stats)
+    plot_diem10_over_years(stats)
     os.makedirs(COMPARE_DIR, exist_ok=True)
     out_csv = os.path.join(COMPARE_DIR, "thong_ke_cac_nam.csv")
     stats.round(4).to_csv(out_csv, index=False, encoding="utf-8-sig")
