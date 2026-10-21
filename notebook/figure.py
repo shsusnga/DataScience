@@ -2,6 +2,7 @@
 figure.py
 =========
 Vẽ biểu đồ phân tích điểm thi THPT Quốc gia 2018-2025.
+Không còn line chart cho từng môn / từng năm (file line_*.png cũ sẽ tự bị xóa khi chạy).
 
 Đầu vào : data/cleaned/cleaned_<năm>.csv  (mỗi năm 1 file, đã làm sạch bằng src/clean_data.py)
 
@@ -10,7 +11,10 @@ Vẽ biểu đồ phân tích điểm thi THPT Quốc gia 2018-2025.
       bar_<mon>.png                       – bar chart dọc phổ điểm (bước 0,5 từ 0 đến 10):
                                             trục hoành = điểm, trục tung = số thí sinh,
                                             kèm đường Mean, Median và dải ±1 độ lệch chuẩn (Std)
-      top10_diem10_<mon>.png              – horizontal bar chart: top 10 tỉnh nhiều điểm 10 nhất
+      top10_diem10_<mon>.png              – horizontal bar chart: top 10 tỉnh nhiều điểm 10 nhất,
+                                            LUÔN có đủ 9 môn mỗi năm (môn không có dữ liệu / không có
+                                            điểm 10 sẽ hiện dòng chú thích thay vì bỏ trống)
+      top10_diem10_tat_ca.png             – gộp 9 môn (3x3) của năm đó
       corr_heatmap.png                    – tương quan điểm giữa các môn
   so_sanh_cac_nam/                        – thư mục chung so sánh giữa các năm
       so_sanh_<mon>.png                   – KDE plot: phổ điểm của môn đó, mỗi năm 1 đường cong màu
@@ -159,20 +163,58 @@ def plot_bar_subject(year, col, name, s):
 
 
 # ── 2. Horizontal bar: top 10 tỉnh nhiều điểm 10 nhất ───────────────────────
-def plot_top10_diem10(year, df, col, name):
-    s = pd.to_numeric(df[col], errors="coerce")
+def draw_top10(ax, year, df, col, name, compact=False):
+    """Vẽ top 10 tỉnh nhiều điểm 10 lên `ax`. LUÔN vẽ được, kể cả khi môn đó không có
+    dữ liệu hoặc không có điểm 10 nào (khi đó hiện dòng chú thích thay vì bỏ trống)."""
+    fs = 8 if compact else 9
+    s = pd.to_numeric(df[col], errors="coerce") if col in df else pd.Series(dtype=float)
+    if s.notna().sum() == 0:
+        ax.set_title(f"{name} – {year}", fontsize=11 if compact else 12)
+        ax.text(0.5, 0.5, "Không có dữ liệu điểm môn này", ha="center", va="center",
+                transform=ax.transAxes, color="#6b7280")
+        ax.set_axis_off()
+        return
+    total = int((s == 10).sum())
     g = df.loc[s == 10].groupby("tinh").size().nlargest(10).iloc[::-1]
     if g.empty:
-        print(f"  {year} – {name}: không có điểm 10, bỏ qua top 10")
+        ax.set_title(f"{name} – {year}\n(tổng cả nước: 0 điểm 10)", fontsize=11 if compact else 12)
+        ax.text(0.5, 0.5, "Không có thí sinh đạt điểm 10", ha="center", va="center",
+                transform=ax.transAxes, color="#6b7280")
+        ax.set_axis_off()
         return
-    fig, ax = plt.subplots(figsize=(8, 5.5))
     bars = ax.barh([province_name(c) for c in g.index], g.values, color="#f59e0b")
-    ax.bar_label(bars, labels=[f"{v:,}" for v in g.values], padding=3, fontsize=9)
+    ax.bar_label(bars, labels=[f"{v:,}" for v in g.values], padding=3, fontsize=fs)
     ax.set_xlabel("Số điểm 10")
-    ax.margins(x=0.12)
-    ax.set_title(f"Top {len(g)} tỉnh/thành nhiều điểm 10 môn {name} – năm {year}\n"
-                 f"(tổng cả nước: {int((s == 10).sum()):,} điểm 10)", fontsize=12)
+    ax.margins(x=0.15)
+    if compact:
+        ax.set_title(f"{name} (tổng {total:,} điểm 10)", fontsize=11)
+    else:
+        ax.set_title(f"Top {len(g)} tỉnh/thành nhiều điểm 10 môn {name} – năm {year}\n"
+                     f"(tổng cả nước: {total:,} điểm 10)", fontsize=12)
+
+
+def plot_top10_diem10(year, df, col, name):
+    """1 ảnh / môn / năm: top10_diem10_<mon>.png (luôn tạo, đủ 9 môn x 8 năm)."""
+    fig, ax = plt.subplots(figsize=(8, 5.5))
+    draw_top10(ax, year, df, col, name)
     save(fig, os.path.join(OUT_DIR, str(year)), f"top10_diem10_{col}.png")
+
+
+def plot_top10_grid(year, df):
+    """1 ảnh / năm gộp 9 môn (3x3): top10_diem10_tat_ca.png."""
+    fig, axes = plt.subplots(3, 3, figsize=(18, 15))
+    for ax, (col, name) in zip(axes.ravel(), SUBJECTS.items()):
+        draw_top10(ax, year, df, col, name, compact=True)
+    fig.suptitle(f"Top 10 tỉnh/thành có nhiều điểm 10 nhất theo môn – năm {year}", fontsize=16)
+    fig.tight_layout()
+    save(fig, os.path.join(OUT_DIR, str(year)), "top10_diem10_tat_ca.png")
+
+
+def cleanup_old_outputs():
+    """Xóa các ảnh line chart cũ (line_<mon>.png) còn sót từ các lần chạy trước."""
+    for path in glob.glob(os.path.join(OUT_DIR, "[0-9][0-9][0-9][0-9]", "line_*.png")):
+        os.remove(path)
+        print("Đã xóa file line chart cũ:", os.path.relpath(path, ROOT_DIR))
 
 
 # ── 3. Heatmap tương quan giữa các môn (mỗi năm) ────────────────────────────
@@ -273,6 +315,7 @@ def plot_subjects_over_years(stats):
 
 
 def main():
+    cleanup_old_outputs()
     data = load_years()
     rows = []
     compare = {col: {} for col in SUBJECTS}
@@ -286,9 +329,12 @@ def main():
                 print(f"  {year} – {name}: không đủ dữ liệu (< {MIN_STUDENTS} thí sinh), bỏ qua")
                 continue
             plot_bar_subject(year, col, name, s)
-            plot_top10_diem10(year, df, col, name)
             compare[col][year] = s
             rows.append({"nam": year, "mon": col, **describe(s)})
+        # Top 10 điểm 10: vẽ cho MỌI môn của năm (kể cả môn thiếu dữ liệu / không có điểm 10)
+        for col, name in SUBJECTS.items():
+            plot_top10_diem10(year, df, col, name)
+        plot_top10_grid(year, df)
         plot_correlation(year, df)
 
     print("\n=== So sánh giữa các năm ===")
