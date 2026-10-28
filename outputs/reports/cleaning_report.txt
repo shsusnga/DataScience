@@ -1,10 +1,10 @@
 ======================================================================
   BAO CAO LAM SACH DU LIEU - KY THI THPT QUOC GIA
-  Ngay tao: 2026-10-12 16:56:32
+  Ngay tao: 2026-10-28 13:50:48
 ======================================================================
 
-  Thu muc du lieu goc  : C:\Users\Admin\OneDrive\Documents\GitHub\DataScience\data\raw.csv
-  Thu muc du lieu clean: C:\Users\Admin\OneDrive\Documents\GitHub\DataScience\data\cleaned
+  Thu muc du lieu goc  : c:\Users\xuanh\OneDrive\Tài liệu\GitHub\DataScience\data\raw.csv
+  Thu muc du lieu clean: c:\Users\xuanh\OneDrive\Tài liệu\GitHub\DataScience\data\cleaned
 
 TONG QUAN
 ----------------------------------------------------------------------
@@ -17,9 +17,9 @@ TONG QUAN
   2021   Format B        987,704           0        987,704
   2022   Format B        995,441           0        995,441
   2023   Format B      1,022,060           0      1,022,060
-  2024   Format A        530,802           0        530,802
+  2024   Format B      1,061,605           0      1,061,605
 ----------------------------------------------------------------------
-  TONG                 7,341,774           0      7,341,774
+  TONG                 7,872,577           0      7,872,577
 ----------------------------------------------------------------------
 
 CHI TIET TUNG NAM
@@ -158,23 +158,23 @@ CHI TIET TUNG NAM
   gdcd             456,608    44.7%
 
 ----------------------------------------------------------------------
-  NAM 2024 | du_lieu_diem_thi_2024.csv | Format A
+  NAM 2024 | du_lieu_diem_thi_2024.csv | Format B
 ----------------------------------------------------------------------
-  Tong dong goc       : 530,802
+  Tong dong goc       : 1,061,605
   Duplicate da xoa    : 0
-  Dong sau cleaning   : 530,802
+  Dong sau cleaning   : 1,061,605
 
   MISSING VALUES (diem mon hoc - hoc sinh khong thi mon do):
   Mon              So dong    Ti le
-  toan               7,376     1.4%
-  ngu_van            5,882     1.1%
-  ngoai_ngu         90,540    17.1%
-  vat_li           363,378    68.5%
-  hoa_hoc          363,130    68.4%
-  sinh_hoc         365,123    68.8%
-  lich_su          172,989    32.6%
-  dia_li           173,532    32.7%
-  gdcd             245,843    46.3%
+  toan              15,992     1.5%
+  ngu_van           11,504     1.1%
+  ngoai_ngu        148,900    14.0%
+  vat_li           715,990    67.4%
+  hoa_hoc          715,087    67.4%
+  sinh_hoc         719,227    67.7%
+  lich_su          355,391    33.5%
+  dia_li           356,923    33.6%
+  gdcd             477,996    45.0%
 
 ======================================================================
 CAC BUOC CLEANING DA THUC HIEN

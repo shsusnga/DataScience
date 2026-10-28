@@ -8,7 +8,7 @@ Không còn line chart cho từng môn / từng năm (file line_*.png cũ sẽ t
 
 Đầu ra (outputs/charts/):
   <năm>/                                  – mỗi năm 1 thư mục
-      bar_<mon>.png                       – bar chart dọc phổ điểm (bước 0,5 từ 0 đến 10):
+      bar_<mon>.png                       – bar chart dọc phổ điểm (mỗi cột = 1 khoảng điểm rộng 0,25):
                                             trục hoành = điểm, trục tung = số thí sinh,
                                             kèm đường Mean, Median và dải ±1 độ lệch chuẩn (Std)
       top10_diem10_<mon>.png              – horizontal bar chart: top 10 tỉnh nhiều điểm 10 nhất,
@@ -47,7 +47,8 @@ CLEANED_DIR = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT_DIR, "data
 OUT_DIR = os.path.join(ROOT_DIR, "outputs", "charts")
 COMPARE_DIR = os.path.join(OUT_DIR, "so_sanh_cac_nam")
 
-BINS = np.arange(0, 10.5, 0.5)   # 0, 0.5, 1.0, ..., 10  (21 mốc)
+BIN_W = 0.25
+BINS = np.arange(0, 10, BIN_W)   # cạnh trái 40 khoảng: [0;0,25), [0,25;0,5), ..., [9,75;10]
 
 SUBJECTS = {
     "toan": "Toán", "ngu_van": "Ngữ văn", "ngoai_ngu": "Ngoại ngữ",
@@ -125,11 +126,11 @@ def valid_scores(df, col):
 
 
 def score_counts(s):
-    """Số thí sinh theo từng mốc điểm cách nhau 0,5 (làm tròn tới mốc 0,5 gần nhất)."""
-    # làm tròn half-up (4,25 -> 4,5). KHÔNG dùng np.round: nó làm tròn nửa về số chẵn nên
-    # điểm lẻ 0,25 bị gom lệch và biểu đồ cột bị răng cưa.
-    idx = np.floor(s.to_numpy() * 2 + 0.5 + 1e-9).astype(int)
-    return np.bincount(idx, minlength=len(BINS))[: len(BINS)]
+    """Số thí sinh trong từng khoảng điểm rộng 0,25: [a; a+0,25). Ví dụ 7; 7,1; 7,2 -> khoảng 7–7,25
+    còn 7,25 -> khoảng 7,25–7,5. Điểm 10 được gộp vào khoảng cuối 9,75–10."""
+    idx = np.floor(s.to_numpy() / BIN_W + 1e-9).astype(int)     # 1e-9 chống sai số số thực
+    idx = np.clip(idx, 0, len(BINS) - 1)
+    return np.bincount(idx, minlength=len(BINS))
 
 
 def describe(s):
@@ -142,7 +143,8 @@ def plot_bar_subject(year, col, name, s):
     st = describe(s)
     fig, ax = plt.subplots(figsize=(10, 5.5))
 
-    ax.bar(BINS, counts, width=0.42, color="#3b82f6", edgecolor="white", label="Số thí sinh")
+    ax.bar(BINS, counts, width=BIN_W, align="edge", color="#3b82f6", edgecolor="white",
+           label="Số thí sinh")
     ax.axvspan(max(st["mean"] - st["std"], 0), min(st["mean"] + st["std"], 10),
                color="#f59e0b", alpha=0.15, label=f"Mean ± Std ({st['std']:.2f})")
     ax.axvline(st["mean"], color="#dc2626", linestyle="--", linewidth=1.6,
@@ -150,12 +152,12 @@ def plot_bar_subject(year, col, name, s):
     ax.axvline(st["median"], color="#16a34a", linestyle="-.", linewidth=1.6,
                label=f"Median (trung vị) = {st['median']:.2f}")
 
-    ax.set_xticks(np.arange(0, 10.5, 0.5))
-    ax.set_xticklabels([f"{v:g}" for v in np.arange(0, 10.5, 0.5)], fontsize=8)
-    ax.set_xlim(-0.2, 10.2)
+    ax.set_xticks(BINS + BIN_W / 2)
+    ax.set_xticklabels([f"{v:g}–{v + BIN_W:g}" for v in BINS], fontsize=7, rotation=90)
+    ax.set_xlim(0, 10)
     ax.set_ylim(bottom=0)
     ax.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _: f"{int(v):,}"))
-    ax.set_xlabel("Điểm (làm tròn tới 0,5)")
+    ax.set_xlabel("Khoảng điểm (mỗi khoảng rộng 0,25)")
     ax.set_ylabel("Số thí sinh")
     ax.set_title(f"Phổ điểm {name} – năm {year}  (n = {st['n']:,})", fontsize=13)
     ax.grid(axis="y", alpha=0.3)
