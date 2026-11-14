@@ -8,7 +8,7 @@ Không còn line chart cho từng môn / từng năm (file line_*.png cũ sẽ t
 
 Đầu ra (outputs/charts/):
   <năm>/                                  – mỗi năm 1 thư mục
-      bar_<mon>.png                       – bar chart dọc phổ điểm (mỗi cột = 1 khoảng điểm rộng 0,25):
+      bar_<mon>.png                       – bar chart dọc phổ điểm (mỗi cột = 1 mốc điểm; mốc 0,2 nếu điểm môn đó chấm theo bước 0,2, mốc 0,25 nếu chấm bước 0,25 – tự nhận):
                                             trục hoành = điểm, trục tung = số thí sinh,
                                             kèm đường Mean, Median và dải ±1 độ lệch chuẩn (Std)
       top10_diem10_<mon>.png              – horizontal bar chart: top 10 tỉnh nhiều điểm 10 nhất,
@@ -18,6 +18,7 @@ Không còn line chart cho từng môn / từng năm (file line_*.png cũ sẽ t
       corr_heatmap.png                    – tương quan điểm giữa các môn
   so_sanh_cac_nam/                        – thư mục chung so sánh giữa các năm
       so_sanh_<mon>.png                   – KDE plot: phổ điểm của môn đó, mỗi năm 1 đường cong màu
+      theo_tinh/<mon>/<mã>_<tỉnh>.png     – bar chart (lưới mỗi năm 1 ô) so sánh các năm cho từng môn x từng tỉnh
       mon_theo_nam_diem_tb.png            – bar chart dọc: điểm TB của từng môn qua các năm
       mon_theo_nam_trung_vi.png           – bar chart dọc: điểm trung vị của từng môn qua các năm
       mon_theo_nam_do_lech_chuan.png      – bar chart dọc: độ lệch chuẩn của từng môn qua các năm
@@ -29,6 +30,8 @@ Cần :  pip install pandas matplotlib numpy
 """
 
 import glob
+import io
+import time
 import os
 import re
 import sys
@@ -47,8 +50,30 @@ CLEANED_DIR = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT_DIR, "data
 OUT_DIR = os.path.join(ROOT_DIR, "outputs", "charts")
 COMPARE_DIR = os.path.join(OUT_DIR, "so_sanh_cac_nam")
 
-BIN_W = 0.25
-BINS = np.arange(0, 10, BIN_W)   # cạnh trái 40 khoảng: [0;0,25), [0,25;0,5), ..., [9,75;10]
+# Độ rộng mốc điểm được TỰ NHẬN theo thang chấm của từng (môn, năm): điểm là bội của 0,2 (vd Toán
+# 2020) -> mốc 0,2; điểm là bội của 0,25 (vd Vật lí 2024, mọi môn 2025) -> mốc 0,25. Chia mốc khớp
+# bước điểm thì không còn cột trống / cột dồn so le.
+STEP = {}               # {(năm, mã môn): độ rộng mốc}
+BIN_W_DEFAULT = 0.2     # dùng khi chưa nhận được bước điểm
+
+
+def detect_step(s):
+    """0,2 hoặc 0,25 tùy điểm của môn là bội số của bước nào (kiểm tra trên mẫu <= 200k điểm)."""
+    v = s.to_numpy()
+    if len(v) > 200_000:
+        v = np.random.default_rng(0).choice(v, 200_000, replace=False)
+    frac = {w: float(np.mean(np.abs(v / w - np.round(v / w)) < 1e-6)) for w in (0.2, 0.25)}
+    return 0.2 if frac[0.2] >= frac[0.25] else 0.25
+
+
+def bin_w(year, col):
+    return STEP.get((year, col), BIN_W_DEFAULT)
+
+
+def bins_of(year, col):
+    w = bin_w(year, col)
+    return np.round(np.arange(0, 10 + w / 2, w), 2)
+
 
 SUBJECTS = {
     "toan": "Toán", "ngu_van": "Ngữ văn", "ngoai_ngu": "Ngoại ngữ",
@@ -89,11 +114,32 @@ def province_name(code):
 
 
 def save(fig, folder, name):
+    """Lưu ảnh an toàn: vẽ vào bộ nhớ rồi ghi file tạm + os.replace, thử lại vài lần.
+    Tránh lỗi OSError 22 trên Windows/OneDrive khi file cũ đang bị khóa (đang mở xem, đang đồng bộ)."""
     os.makedirs(folder, exist_ok=True)
     path = os.path.join(folder, name)
-    fig.savefig(path, dpi=150, bbox_inches="tight")
+    buf = io.BytesIO()
+    fig.savefig(buf, format="png", dpi=150, bbox_inches="tight")
     plt.close(fig)
-    print("Đã lưu:", os.path.relpath(path, ROOT_DIR))
+    data = buf.getvalue()
+    tmp = path + ".tmp"
+    for attempt in range(5):
+        try:
+            with open(tmp, "wb") as f:
+                f.write(data)
+            os.replace(tmp, path)
+            print("Đã lưu:", os.path.relpath(path, ROOT_DIR))
+            return
+        except OSError as e:
+            last = e
+            time.sleep(1)
+    alt = path[:-4] + f"_{int(time.time())}.png"      # file gốc bị khóa -> lưu tên khác
+    try:
+        with open(alt, "wb") as f:
+            f.write(data)
+        print(f"CẢNH BÁO: không ghi đè được {name} ({last}); đã lưu thành {os.path.basename(alt)}")
+    except OSError as e:
+        print(f"LỖI: không lưu được {path}: {e}  (thử đặt OUT_DIR ra ngoài OneDrive)")
 
 
 def load_years():
@@ -125,12 +171,14 @@ def valid_scores(df, col):
     return s if len(s) >= MIN_STUDENTS else None
 
 
-def score_counts(s):
-    """Số thí sinh trong từng khoảng điểm rộng 0,25: [a; a+0,25). Ví dụ 7; 7,1; 7,2 -> khoảng 7–7,25
-    còn 7,25 -> khoảng 7,25–7,5. Điểm 10 được gộp vào khoảng cuối 9,75–10."""
-    idx = np.floor(s.to_numpy() / BIN_W + 1e-9).astype(int)     # 1e-9 chống sai số số thực
-    idx = np.clip(idx, 0, len(BINS) - 1)
-    return np.bincount(idx, minlength=len(BINS))
+def score_counts(s, year, col):
+    """Số thí sinh tại từng MỐC điểm của năm `year` (cách nhau 0,2; riêng 2025 cách nhau 0,25).
+    Mỗi điểm được làm tròn tới mốc gần nhất (half-up). Điểm đã là bội của bước (vd Toán 2020 bội
+    của 0,2; 2025 bội của 0,25) giữ nguyên mốc."""
+    w, n = bin_w(year, col), len(bins_of(year, col))
+    idx = np.floor(s.to_numpy() / w + 0.5 + 1e-9).astype(int)   # 1e-9 chống sai số số thực
+    idx = np.clip(idx, 0, n - 1)
+    return np.bincount(idx, minlength=n)
 
 
 def describe(s):
@@ -139,11 +187,12 @@ def describe(s):
 
 # ── 1. Bar chart phổ điểm từng môn, từng năm ───────────────────────────────
 def plot_bar_subject(year, col, name, s):
-    counts = score_counts(s)
+    counts = score_counts(s, year, col)
+    bins, w = bins_of(year, col), bin_w(year, col)
     st = describe(s)
     fig, ax = plt.subplots(figsize=(10, 5.5))
 
-    ax.bar(BINS, counts, width=BIN_W, align="edge", color="#3b82f6", edgecolor="white",
+    ax.bar(bins, counts, width=w * 0.85, align="center", color="#3b82f6", edgecolor="white",
            label="Số thí sinh")
     ax.axvspan(max(st["mean"] - st["std"], 0), min(st["mean"] + st["std"], 10),
                color="#f59e0b", alpha=0.15, label=f"Mean ± Std ({st['std']:.2f})")
@@ -152,12 +201,12 @@ def plot_bar_subject(year, col, name, s):
     ax.axvline(st["median"], color="#16a34a", linestyle="-.", linewidth=1.6,
                label=f"Median (trung vị) = {st['median']:.2f}")
 
-    ax.set_xticks(BINS + BIN_W / 2)
-    ax.set_xticklabels([f"{v:g}–{v + BIN_W:g}" for v in BINS], fontsize=7, rotation=90)
-    ax.set_xlim(0, 10)
+    ax.set_xticks(bins)
+    ax.set_xticklabels([f"{v:g}" for v in bins], fontsize=7, rotation=90)
+    ax.set_xlim(-0.15, 10.15)
     ax.set_ylim(bottom=0)
     ax.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _: f"{int(v):,}"))
-    ax.set_xlabel("Khoảng điểm (mỗi khoảng rộng 0,25)")
+    ax.set_xlabel(f"Mốc điểm (cách nhau {w:g}".replace(".", ",") + ")")
     ax.set_ylabel("Số thí sinh")
     ax.set_title(f"Phổ điểm {name} – năm {year}  (n = {st['n']:,})", fontsize=13)
     ax.grid(axis="y", alpha=0.3)
@@ -258,8 +307,9 @@ def kde_curve(s, bw=0.25, step=0.01):
     return (edges[:-1] + step / 2), smooth / (h.sum() * step)
 
 
-def plot_compare_subject(col, name, per_year):
-    """KDE plot so sánh phổ điểm của 1 môn giữa các năm. per_year: {năm: Series điểm}"""
+def plot_compare_subject(col, name, per_year, place=None, folder=None, fname=None):
+    """KDE plot so sánh phổ điểm của 1 môn giữa các năm. per_year: {năm: Series điểm}
+    place: tên tỉnh (nếu vẽ riêng cho 1 tỉnh), folder/fname: nơi lưu (mặc định thư mục chung)."""
     if not per_year:
         return
     years = sorted(per_year)
@@ -280,11 +330,69 @@ def plot_compare_subject(col, name, per_year):
     ax.set_ylim(bottom=0)
     ax.set_xlabel("Điểm")
     ax.set_ylabel("Mật độ (KDE)")
-    ax.set_title(f"KDE plot – so sánh phổ điểm {name} giữa các năm", fontsize=13)
+    where = f" – {place}" if place else ""
+    ax.set_title(f"KDE plot – so sánh phổ điểm {name}{where} giữa các năm", fontsize=13)
     ax.grid(axis="y", alpha=0.3)
     ax.legend(fontsize=8.5, frameon=False, loc="upper center",
               bbox_to_anchor=(0.5, -0.12), ncol=2)
-    save(fig, COMPARE_DIR, f"so_sanh_{col}.png")
+    save(fig, folder or COMPARE_DIR, fname or f"so_sanh_{col}.png")
+
+
+def plot_province_bars(col, name, per_year, place, folder, fname):
+    """Bar chart so sánh phổ điểm 1 môn của 1 tỉnh giữa các năm: lưới 2x4, mỗi năm 1 ô,
+    cột = % thí sinh tại từng mốc điểm (0,2 hoặc 0,25 tùy thang chấm của môn/năm) (dùng % để so sánh được giữa các năm có n khác nhau)."""
+    years = sorted(per_year)
+    ncol = 4
+    nrow = int(np.ceil(len(years) / ncol))
+    fig, axs = plt.subplots(nrow, ncol, figsize=(17, 4 * nrow), sharex=True, sharey=True,
+                            squeeze=False)
+    pct = {y: score_counts(per_year[y], y, col) / len(per_year[y]) * 100 for y in years}
+    ymax = max(v.max() for v in pct.values()) * 1.1
+    for ax in axs.flat:
+        ax.axis("off")
+    for ax, y in zip(axs.flat, years):
+        ax.axis("on")
+        s = per_year[y]
+        ax.bar(bins_of(y, col), pct[y], width=bin_w(y, col) * 0.85, align="center", color="#3b82f6", edgecolor="white",
+               linewidth=0.3)
+        ax.axvline(s.mean(), color="#dc2626", linestyle="--", linewidth=1.3)
+        ax.set_title(f"{y} – mốc {bin_w(y, col):g}".replace(".", ",") + f"  (n={len(s):,} | Mean={s.mean():.2f} | Std={s.std():.2f})", fontsize=10)
+        ax.set_xlim(-0.15, 10.15)
+        ax.set_ylim(0, ymax)
+        ax.set_xticks(range(0, 11, 2))
+        ax.spines[["top", "right"]].set_visible(False)
+        ax.grid(axis="y", alpha=0.3)
+        ax.tick_params(labelbottom=True, labelleft=True)
+    for ax in axs[:, 0]:
+        ax.set_ylabel("% thí sinh")
+    for ax in axs[-1, :]:
+        ax.set_xlabel("Mốc điểm")
+    fig.suptitle(f"Phổ điểm {name} – {place}: so sánh các năm (đường đỏ = điểm trung bình)",
+                 fontsize=14)
+    fig.tight_layout()
+    save(fig, folder, fname)
+
+
+def plot_compare_by_province(data):
+    """Bar chart so sánh phổ điểm các năm cho TỪNG MÔN x TỪNG TỈNH.
+    Lưu: so_sanh_cac_nam/theo_tinh/<mon>/<mã tỉnh>_<tên tỉnh>.png
+    Năm nào tỉnh có < MIN_STUDENTS thí sinh thi môn đó thì bỏ qua năm đó."""
+    base = os.path.join(COMPARE_DIR, "theo_tinh")
+    for col, name in SUBJECTS.items():
+        by_prov = {}                       # {mã tỉnh: {năm: Series điểm}}
+        for year in sorted(data):          # groupby 1 lần cho mỗi (môn, năm): nhanh với dữ liệu lớn
+            df = data[year]
+            if col not in df or "tinh" not in df:
+                continue
+            g = pd.DataFrame({"tinh": pd.to_numeric(df["tinh"], errors="coerce"),
+                              "s": pd.to_numeric(df[col], errors="coerce")}).dropna()
+            for code, s in g.groupby("tinh")["s"]:
+                if len(s) >= MIN_STUDENTS:
+                    by_prov.setdefault(int(code), {})[year] = s
+        for code, per_year in sorted(by_prov.items()):
+            pn = province_name(code)
+            plot_province_bars(col, name, per_year, pn, os.path.join(base, col),
+                               f"{code:02d}_{pn.replace(' ', '_')}.png")
 
 
 # ── 5. Bar chart so sánh các môn theo năm ──────────────────────────────────
@@ -352,6 +460,7 @@ def main():
             if s is None:
                 print(f"  {year} – {name}: không đủ dữ liệu (< {MIN_STUDENTS} thí sinh), bỏ qua")
                 continue
+            STEP[(year, col)] = detect_step(s)
             plot_bar_subject(year, col, name, s)
             compare[col][year] = s
             rows.append({"nam": year, "mon": col, **describe(s), "n_diem10": int((s == 10).sum())})
@@ -364,6 +473,9 @@ def main():
     print("\n=== So sánh giữa các năm ===")
     for col, name in SUBJECTS.items():
         plot_compare_subject(col, name, compare[col])
+
+    print("\n=== So sánh giữa các năm: từng môn x từng tỉnh ===")
+    plot_compare_by_province(data)
 
     stats = pd.DataFrame(rows)
     plot_subjects_over_years(stats)
